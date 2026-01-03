@@ -1,71 +1,44 @@
-require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
+const express = require("express");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
-app.use(bodyParser.json());
-app.use(express.static('public'));
+const VAULT_PASSWORD = "1234"; // 🔐 CHANGE LATER SAFELY
 
-// Storage folder
-const storageDir = path.join(__dirname, 'storage');
-if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir);
+app.use(express.json());
+app.use(express.static("public"));
 
-// Multer setup
-const upload = multer({ dest: storageDir });
+const vaultDir = path.join(__dirname, "storage", "vault");
+if (!fs.existsSync(vaultDir)) fs.mkdirSync(vaultDir, { recursive: true });
 
-// Vault password
-const PASSWORD = process.env.VAULT_PASSWORD || "wasushiv";
+const upload = multer({ dest: vaultDir });
 
-// Simple session to track unlock (in memory)
-let vaultUnlocked = false;
-
-// Unlock vault
-app.post('/unlock', (req, res) => {
-    const { password } = req.body;
-    if(password === PASSWORD){
-        vaultUnlocked = true;
-        res.json({ success:true });
-    } else {
-        res.json({ success:false });
-    }
+app.post("/unlock", (req, res) => {
+  if (req.body.password === VAULT_PASSWORD) {
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
 });
 
-// Upload file
-app.post('/upload', upload.single('file'), (req,res) => {
-    if(!vaultUnlocked){
-        return res.status(403).send("Vault locked");
-    }
-    res.send("File uploaded successfully!");
+app.post("/upload", upload.single("file"), (req, res) => {
+  res.send("File uploaded successfully");
 });
 
-// List files
-app.get('/vault-files', (req,res) => {
-    if(!vaultUnlocked){
-        return res.status(403).send("Vault locked");
-    }
-    const files = fs.readdirSync(storageDir);
-    res.json(files);
+app.get("/vault-files", (req, res) => {
+  fs.readdir(vaultDir, (err, files) => {
+    res.json(files || []);
+  });
 });
 
-// Download file
-app.get('/download/:filename', (req,res) => {
-    if(!vaultUnlocked){
-        return res.status(403).send("Vault locked");
-    }
-    const filePath = path.join(storageDir, req.params.filename);
-    if(fs.existsSync(filePath)){
-        res.download(filePath);
-    } else {
-        res.status(404).send("File not found");
-    }
+app.get("/download/:name", (req, res) => {
+  const filePath = path.join(vaultDir, req.params.name);
+  res.download(filePath);
 });
 
 app.listen(PORT, () => {
-    console.log(`LifeGames running at http://localhost:${PORT}`);
+  console.log("LifeGames running on port " + PORT);
 });
