@@ -20,7 +20,7 @@ if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir);
 const upload = multer({ dest: storageDir });
 
 // Vault password
-const PASSWORD = process.env.VAULT_PASSWORD || "vault123";
+const PASSWORD = process.env.VAULT_PASSWORD || "wasushiv";
 
 // Simple session to track unlock (in memory)
 let vaultUnlocked = false;
