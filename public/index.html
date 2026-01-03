@@ -2,149 +2,111 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LifeGames</title>
+
 <style>
-body {
-    font-family: Arial, sans-serif;
-    background: #111;
-    color: #eee;
-    margin: 0;
-    padding: 0;
-    text-align: center;
+body{
+  background:#111;
+  color:white;
+  font-family:Arial;
+  text-align:center;
 }
-#logo {
-    font-size: 2em;
-    margin: 20px;
-    cursor: pointer;
+
+h1{margin:20px 0;}
+
+#games{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:15px;
+  padding:20px;
 }
-#games {
-    display: grid;
-    grid-template-columns: repeat(auto-fit,minmax(120px,1fr));
-    gap: 10px;
-    margin: 20px;
+
+.game{
+  background:#222;
+  padding:20px;
+  border-radius:12px;
+  cursor:pointer;
+  transition:.2s;
 }
-.game {
-    background: #222;
-    padding: 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: 0.2s;
+
+.game:hover{
+  background:#0f0;
+  color:#000;
 }
-.game:hover {
-    background: #444;
+
+#player{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#000;
+  color:#fff;
+  z-index:9999;
 }
-#vault {
-    display: none;
-    margin: 20px auto;
-    padding: 20px;
-    background: #222;
-    border-radius: 10px;
-    max-width: 400px;
-    text-align: left;
-}
-#vault h2 {
-    color: #0f0;
-}
-#fileList li {
-    margin: 5px 0;
-}
-#fileList a {
-    color: #0ff;
-    text-decoration: none;
-}
-#fileList a:hover {
-    text-decoration: underline;
-}
-button {
-    padding: 8px 12px;
-    margin-top: 10px;
-    cursor: pointer;
+
+iframe{
+  width:100%;
+  height:100%;
+  border:none;
 }
 </style>
 </head>
+
 <body>
 
-<div id="logo">🎮 LifeGames</div>
+<h1 id="logo">🎮 LifeGames</h1>
 
 <div id="games"></div>
 
-<div id="vault">
-  <h2>🔐 Secret Vault</h2>
-  <form id="uploadForm" enctype="multipart/form-data">
-    <input type="file" name="file" required>
-    <button type="submit">Upload to Vault</button>
-  </form>
-  <h3>Files in Vault:</h3>
-  <ul id="fileList"></ul>
+<div id="player">
+  <button onclick="closeGame()" style="padding:10px;">⬅ Back</button>
+  <iframe id="frame"></iframe>
 </div>
 
 <script>
-// Generate 50 game blocks
+const games = document.getElementById("games");
+const frame = document.getElementById("frame");
+const player = document.getElementById("player");
+
+/* 50 games */
 for(let i=1;i<=50;i++){
-    const div = document.createElement("div");
-    div.className = "game";
-    div.textContent = "Game " + i;
-    document.getElementById("games").appendChild(div);
+  const g=document.createElement("div");
+  g.className="game";
+  g.innerText="Game "+i;
+  g.onclick=()=>openGame(i);
+  games.appendChild(g);
 }
 
-// Unlock vault after 7 taps on logo
-let taps = 0;
-document.getElementById("logo").onclick = () => {
-    taps++;
-    if(taps === 7) unlockVault();
-};
+/* Simple playable demos */
+function openGame(i){
+  player.style.display="block";
+  frame.srcdoc = `
+    <body style="background:#111;color:white;text-align:center">
+      <h2>Game ${i}</h2>
+      <p>Click the box!</p>
+      <div id="box" style="
+        width:100px;
+        height:100px;
+        background:red;
+        margin:40px auto;
+        cursor:pointer;
+      "></div>
 
-function unlockVault(){
-    const password = prompt("Enter vault password");
-    fetch('/unlock', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({password})
-    })
-    .then(r=>r.json())
-    .then(d=>{
-        if(d.success){
-            document.getElementById("vault").style.display = "block";
-            loadFiles();
-        } else {
-            alert("Wrong password");
+      <script>
+        let score=0;
+        document.getElementById("box").onclick=()=>{
+          score++;
+          document.getElementById("box").style.background =
+            "hsl("+Math.random()*360+",80%,60%)";
+          document.querySelector("p").innerText="Score: "+score;
         }
-    });
+      <\/script>
+    </body>
+  `;
 }
 
-// Upload file to vault
-document.getElementById("uploadForm").onsubmit = e => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    fetch('/upload',{
-        method:'POST',
-        body: formData
-    })
-    .then(r=>r.text())
-    .then(msg=>{
-        alert(msg);
-        loadFiles();
-    });
-}
-
-// Load vault files
-function loadFiles(){
-    fetch('/vault-files')
-    .then(r=>r.json())
-    .then(files=>{
-        const ul = document.getElementById("fileList");
-        ul.innerHTML = "";
-        files.forEach(f=>{
-            const li = document.createElement("li");
-            const a = document.createElement("a");
-            a.href = "/download/"+f;
-            a.textContent = f;
-            a.target="_blank";
-            li.appendChild(a);
-            ul.appendChild(li);
-        });
-    });
+function closeGame(){
+  player.style.display="none";
+  frame.srcdoc="";
 }
 </script>
 
